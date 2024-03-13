@@ -48,7 +48,7 @@ driver.get(URL)
 try:
     # Define una espera explícita con un tiempo máximo de espera de 10 segundos o hasta que encuentre un elemento especifico
     elemento = WebDriverWait(driver, 10).until(
-        EC.presence_of_element_located((By.XPATH, '//tr[@data-connected-realm="1"]'))
+        EC.presence_of_element_located((By.XPATH, '//td[@data-sort-value="Akama"]'))
     )
 
     
@@ -66,7 +66,7 @@ driver.quit()
 soup = BeautifulSoup(html, "lxml")
 div = soup.find('div', {'class': 'list'})
 table = div.find_next('table')
-print(div)
+print(table)
 items = []
 
 for row in tqdm(table.findAll('tr')[1:]):
