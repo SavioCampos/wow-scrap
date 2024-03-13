@@ -66,6 +66,7 @@ driver.quit()
 soup = BeautifulSoup(html, "lxml")
 div = soup.find('div', {'class': 'list'})
 table = div.find_next('table')
+print(soup)
 items = []
 
 for row in tqdm(table.findAll('tr')[1:]):
