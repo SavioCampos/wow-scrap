@@ -47,60 +47,58 @@ driver.get(URL)
 # Espera a que el JavaScript se cargue 
 try:
     # Define una espera explícita con un tiempo máximo de espera de 10 segundos o hasta que encuentre un elemento especifico
-    elemento = WebDriverWait(driver, 180).until(
+    elemento = WebDriverWait(driver, 360).until(
         EC.presence_of_element_located((By.XPATH, '//div[@class="list"]//table//tbody//*'))
     )
+    # Obtiene el HTML después de que el JavaScript se haya ejecutado
+    html = driver.page_source
 
-    
+    # Cierra el navegador
+    driver.quit()
+
+    # Analiza el HTML con BeautifulSoup
+    soup = BeautifulSoup(html, "lxml")
+    div = soup.find('div', {'class': 'list'})
+    table = div.find_next('table')
+    print(table)
+    items = []
+
+    for row in tqdm(table.findAll('tr')[1:]):
+        realm = row.findAll('td')[0]['data-sort-value']
+        price = int(row.findAll('td')[1]['data-sort-value'])
+        quantity = int(row.findAll('td')[2]['data-sort-value'])
+        item = Item(realm, int(price/10000), quantity)
+        items.append(item)
+
+    items_con_stock = filter(lambda obj: obj.cantidad > 0, items)
+    item_menor_precio = min(items_con_stock, key=lambda obj: obj.precio)
+
+    print(f"Server: {item_menor_precio.server}, Precio: {item_menor_precio.precio}, Cantidad: {item_menor_precio.cantidad}")
+    if item_menor_precio.precio <= UMBRAL:
+        message = MIMEMultipart()
+        message['From'] = sender_email
+        message['To'] = receiver_email
+        message['Subject'] = 'Se ha detectado una oferta en un item'
+
+        # Cuerpo del mensaje
+        body = f"Server: {item_menor_precio.server}, Precio: {item_menor_precio.precio}, Cantidad: {item_menor_precio.cantidad}"
+        message.attach(MIMEText(body, 'plain'))
+
+        # Iniciar conexión con el servidor SMTP de Gmail
+        server = smtplib.SMTP(smtp_server, smtp_port)
+        server.starttls()  # Iniciar cifrado TLS
+
+        # Iniciar sesión en el servidor SMTP de Gmail
+        server.login(smtp_username, smtp_password)
+
+        # Enviar correo electrónico
+        text = message.as_string()
+        server.sendmail(sender_email, receiver_email, text)
+
+        # Cerrar conexión con el servidor SMTP de Gmail
+        server.quit()
+
 except Exception as e:
     print("Se agotó el tiempo de espera o el elemento no se encontró:", e)
 
-
-# Obtiene el HTML después de que el JavaScript se haya ejecutado
-html = driver.page_source
-
-# Cierra el navegador
-driver.quit()
-
-# Analiza el HTML con BeautifulSoup
-soup = BeautifulSoup(html, "lxml")
-div = soup.find('div', {'class': 'list'})
-table = div.find_next('table')
-print(table)
-items = []
-
-for row in tqdm(table.findAll('tr')[1:]):
-    realm = row.findAll('td')[0]['data-sort-value']
-    price = int(row.findAll('td')[1]['data-sort-value'])
-    quantity = int(row.findAll('td')[2]['data-sort-value'])
-    item = Item(realm, int(price/10000), quantity)
-    items.append(item)
-
-items_con_stock = filter(lambda obj: obj.cantidad > 0, items)
-item_menor_precio = min(items_con_stock, key=lambda obj: obj.precio)
-
-print(f"Server: {item_menor_precio.server}, Precio: {item_menor_precio.precio}, Cantidad: {item_menor_precio.cantidad}")
-if item_menor_precio.precio <= UMBRAL:
-    message = MIMEMultipart()
-    message['From'] = sender_email
-    message['To'] = receiver_email
-    message['Subject'] = 'Se ha detectado una oferta en un item'
-
-    # Cuerpo del mensaje
-    body = f"Server: {item_menor_precio.server}, Precio: {item_menor_precio.precio}, Cantidad: {item_menor_precio.cantidad}"
-    message.attach(MIMEText(body, 'plain'))
-
-    # Iniciar conexión con el servidor SMTP de Gmail
-    server = smtplib.SMTP(smtp_server, smtp_port)
-    server.starttls()  # Iniciar cifrado TLS
-
-    # Iniciar sesión en el servidor SMTP de Gmail
-    server.login(smtp_username, smtp_password)
-
-    # Enviar correo electrónico
-    text = message.as_string()
-    server.sendmail(sender_email, receiver_email, text)
-
-    # Cerrar conexión con el servidor SMTP de Gmail
-    server.quit()
 
