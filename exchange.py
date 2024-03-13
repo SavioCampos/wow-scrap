@@ -47,7 +47,7 @@ driver.get(URL)
 # Espera a que el JavaScript se cargue 
 try:
     # Define una espera explícita con un tiempo máximo de espera de 10 segundos o hasta que encuentre un elemento especifico
-    elemento = WebDriverWait(driver, 60).until(
+    elemento = WebDriverWait(driver, 180).until(
         EC.presence_of_element_located((By.XPATH, '//div[@class="list"]//table//tbody//*'))
     )
 
