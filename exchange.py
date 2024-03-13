@@ -48,7 +48,7 @@ driver.get(URL)
 try:
     # Define una espera explícita con un tiempo máximo de espera de 10 segundos o hasta que encuentre un elemento especifico
     elemento = WebDriverWait(driver, 10).until(
-        EC.element_to_be_clickable((By.XPATH, '//td[@data-sort-value="Aegwynn"]'))
+        EC.presence_of_element_located((By.XPATH, '//div[@class="list"]//table//tbody//*'))
     )
 
     
