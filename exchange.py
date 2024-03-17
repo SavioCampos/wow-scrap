@@ -5,9 +5,9 @@ from selenium.webdriver.support import expected_conditions as EC
 from selenium.webdriver.chrome.options import Options
 from bs4 import BeautifulSoup
 from tqdm import tqdm
-import smtplib
-from email.mime.text import MIMEText
-from email.mime.multipart import MIMEMultipart
+import datetime
+import requests
+import re
 
 
 class Item:
@@ -16,22 +16,21 @@ class Item:
         self.precio = precio
         self.cantidad = cantidad
 
+#Configuracion de bot de Telegram
+TOKEN = '7070477668:AAFnG0aHBZjDA0xyRhf9VZoQWmKUnK49jP0'
+chat_id = '840418817'
+
+def enviar_mensaje(mensaje):
+    requests.post(f'https://api.telegram.org/bot{TOKEN}/sendMessage', data={'chat_id': chat_id, 'text': mensaje, 'parse_mode': 'HTML'})
+
 # Parametros
 URL = "https://undermine.exchange/#us-goldrinn/208426-444"
 UMBRAL = 30000
-EMAIL = 'sak.kancer@gmail.com'
 
 # Configuración del servidor SMTP y credenciales para Gmail
 smtp_server = 'smtp.gmail.com'
 smtp_port = 587  # Puerto SMTP para Gmail
 
-# Direcciones de correo electrónico
-sender_email = 'scrapwowexchange@gmail.com'
-receiver_email = EMAIL
-
-# Credenciales de Gmail
-smtp_username = 'scrapwowexchange@gmail.com'
-smtp_password = 'ixru crmq wmwx inrg'
 
 # Configura el driver de Selenium
 options = Options()
@@ -60,7 +59,6 @@ try:
     soup = BeautifulSoup(html, "lxml")
     div = soup.find('div', {'class': 'list'})
     table = div.find_next('table')
-    print(table)
     items = []
 
     for row in tqdm(table.findAll('tr')[1:]):
@@ -72,33 +70,16 @@ try:
 
     items_con_stock = filter(lambda obj: obj.cantidad > 0, items)
     item_menor_precio = min(items_con_stock, key=lambda obj: obj.precio)
+    tiempo = datetime.datetime.now().strftime("%d-%m-%Y %H:%M:%S")
 
-    print(f"Server: {item_menor_precio.server}, Precio: {item_menor_precio.precio}, Cantidad: {item_menor_precio.cantidad}")
+    new_URL = re.sub(r'(?<=us-)[^/]+', item_menor_precio.server.lower(), URL)
+    mensaje = f"{tiempo}: - Server: {item_menor_precio.server}, Precio: {item_menor_precio.precio}, Cantidad: {item_menor_precio.cantidad}, URL: {new_URL}"
+    print(mensaje)
     if item_menor_precio.precio <= UMBRAL:
-        message = MIMEMultipart()
-        message['From'] = sender_email
-        message['To'] = receiver_email
-        message['Subject'] = 'Se ha detectado una oferta en un item'
-
-        # Cuerpo del mensaje
-        body = f"Server: {item_menor_precio.server}, Precio: {item_menor_precio.precio}, Cantidad: {item_menor_precio.cantidad}"
-        message.attach(MIMEText(body, 'plain'))
-
-        # Iniciar conexión con el servidor SMTP de Gmail
-        server = smtplib.SMTP(smtp_server, smtp_port)
-        server.starttls()  # Iniciar cifrado TLS
-
-        # Iniciar sesión en el servidor SMTP de Gmail
-        server.login(smtp_username, smtp_password)
-
-        # Enviar correo electrónico
-        text = message.as_string()
-        server.sendmail(sender_email, receiver_email, text)
-
-        # Cerrar conexión con el servidor SMTP de Gmail
-        server.quit()
+        enviar_mensaje(mensaje)
 
 except Exception as e:
     print("Se agotó el tiempo de espera o el elemento no se encontró:", e)
+
 
 
